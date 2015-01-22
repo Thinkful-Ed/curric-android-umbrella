@@ -57,8 +57,6 @@ public class MainActivity extends ActionBarActivity implements GoogleApiClient.C
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            WebServiceTask webserviceTask = new WebServiceTask();
-            webserviceTask.execute("Craig");
             return true;
         }
 
