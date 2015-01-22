@@ -1,4 +1,5 @@
-Unit 4 Lesson 1 - Table Views
+#Thinkful - Android Programming
+##Unit 4 Lesson 3 - Web Services
 
 This Project is set up to demonstrate steps in the process of building a "Should I take an Umbrella to work today?" app.
 
