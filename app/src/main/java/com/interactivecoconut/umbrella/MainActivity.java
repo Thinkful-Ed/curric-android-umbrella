@@ -7,26 +7,20 @@ import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 
 public class MainActivity extends ActionBarActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     protected GoogleApiClient mGoogleApiClient;
+    protected String latitude;
+    protected String longitude;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,8 +32,36 @@ public class MainActivity extends ActionBarActivity implements GoogleApiClient.C
                 .addOnConnectionFailedListener(this)
                 .addApi(LocationServices.API)
                 .build();
+
+        /*
+            Alarm
+         */
+        Button alarmButton = (Button) findViewById(R.id.button);
+        alarmButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setAlarm();
+            }
+        });
+
+
+        Button cancelAlarmButton = (Button) findViewById(R.id.button2);
+        cancelAlarmButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cancelAlarm();
+            }
+        });
     }
 
+    protected void setAlarm() {
+        Alarm alarm = new Alarm();
+        alarm.setAlarm(this,latitude,longitude);
+    }
+    protected void cancelAlarm() {
+        Alarm alarm = new Alarm();
+        alarm.cancelAlarm(this,latitude,longitude);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -67,9 +89,11 @@ public class MainActivity extends ActionBarActivity implements GoogleApiClient.C
     public void onConnected(Bundle bundle) {
         Location mCurrentLocation = LocationServices.FusedLocationApi.getLastLocation(
                 mGoogleApiClient);
+        latitude = String.valueOf(mCurrentLocation.getLatitude());
+        longitude = String.valueOf(mCurrentLocation.getLongitude());
         Log.i("info","onConnected");
         WebServiceTask webserviceTask = new WebServiceTask();
-        webserviceTask.execute(String.valueOf(mCurrentLocation.getLatitude()),String.valueOf(mCurrentLocation.getLongitude()));
+        webserviceTask.execute(latitude,longitude);
     }
     @Override
     public void onConnectionSuspended(int i) {
@@ -86,57 +110,18 @@ public class MainActivity extends ActionBarActivity implements GoogleApiClient.C
     private class WebServiceTask extends AsyncTask<String, String, String> {
         @Override
         protected String doInBackground(String... params) {
-            HttpURLConnection urlConnection = null;
-            String useUmbrellaStr = "Don't know, sorry about that.";
-            try {
-                URL url = new URL("http://api.openweathermap.org/data/2.5/forecast/daily?lat="+params[0]+"&lon="+params[1]+"&mode=json&units=metric&cnt=1");
-                urlConnection = (HttpURLConnection) url.openConnection();
-                useUmbrellaStr = useUmbrella(urlConnection.getInputStream());
-            } catch (IOException e) {
-                Log.e("MainActivity", "Error ", e);
-            } finally {
-                if (urlConnection != null) {
-                    urlConnection.disconnect();
-                }
-            }
-            return useUmbrellaStr;
-        }
-        protected String useUmbrella(InputStream in) {
-            StringBuilder stringBuilder = new StringBuilder();
-            BufferedReader bufferedReader = null;
-            try {
-                bufferedReader = new BufferedReader(new InputStreamReader(in));
-
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    stringBuilder.append(line + "\n");
-                }
-                Log.i("JSON Response",stringBuilder.toString());
-                //Parse JSON
-                JSONObject forecastJson = new JSONObject(stringBuilder.toString());
-                JSONArray weatherArray = forecastJson.getJSONArray("list");
-                JSONObject todayForecast = weatherArray.getJSONObject(0);
-
-                if (todayForecast.has("rain") || todayForecast.has("snow")) {
-                    return("Yes");
-                } else {
+            WeatherService weatherService = new WeatherService();
+            int weatherResponse = weatherService.getWeather(params[0],params[1]);
+            switch (weatherResponse) {
+                case WeatherService.CLEAR:
                     return("No");
-                }
-            } catch (Exception e) {
-                Log.e("MainActivity", "Error", e);
-            } finally {
-                if (bufferedReader != null) {
-                    try {
-                        bufferedReader.close();
-                    } catch (final IOException e) {
-                        Log.e("PlaceholderFragment", "Error closing stream", e);
-                    }
-                }
+                case WeatherService.RAIN:
+                case WeatherService.SNOW:
+                    return("Yes");
+                default:
+                    return("Don't know!");
             }
-
-            return "Don't know, sorry about that.";
         }
-
         @Override
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
