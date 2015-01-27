@@ -32,10 +32,6 @@
             android:name=".NotifyService"
             android:exported="false" >
         </service>
-        <service
-            android:name=".MyIntentService"
-            android:exported="false" >
-        </service>
     </application>
 
 </manifest>
